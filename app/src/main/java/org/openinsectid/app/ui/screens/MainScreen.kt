@@ -156,6 +156,7 @@ fun MainScreen(navController: NavController) {
                                     ),
                                     shape = CircleShape
                                 )
+                                .clip(CircleShape)
                                 .clickable {
                                     ctx.showToast("Not yet implemented")
                                 },

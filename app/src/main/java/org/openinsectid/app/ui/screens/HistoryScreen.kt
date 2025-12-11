@@ -27,6 +27,14 @@ fun HistoryScreen(navController: NavController) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("History") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(Color.Black)
         )
     }) { padding ->

@@ -44,6 +44,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
@@ -128,7 +130,6 @@ fun MainScreen(navController: NavController) {
                         contentDescription = "Selected image",
                         modifier = Modifier
                             .fillMaxWidth()
-//                            .height(360.dp)
                     )
                     Spacer(Modifier.height(12.dp))
 
@@ -160,9 +161,11 @@ fun MainScreen(navController: NavController) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "Ask AI",
+                                "What insect is that?",
                                 style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold
                             )
                         }
 

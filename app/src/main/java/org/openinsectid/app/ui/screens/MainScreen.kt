@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.openinsectid.app.data.ImageStore
-import org.openinsectid.app.showToast
+import org.openinsectid.app.utils.InferenceManager
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +63,11 @@ import org.openinsectid.app.showToast
 fun MainScreen(navController: NavController) {
     val ctx = LocalContext.current
     var currentImage by remember { mutableStateOf<ImageStore.StoredImage?>(null) }
+    var predictions by remember { mutableStateOf<Map<String, String>?>(null) }
+    var isAnalyzing by remember { mutableStateOf(false) }
+    var debugInfo by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+
 
     // Load last saved image on compose
     LaunchedEffect(Unit) {
@@ -155,18 +164,50 @@ fun MainScreen(navController: NavController) {
                                     shape = CircleShape
                                 )
                                 .clip(CircleShape)
-                                .clickable {
-                                    ctx.showToast("Not yet implemented")
+                                .clickable(enabled = !isAnalyzing) {
+                                    coroutineScope.launch {
+                                        currentImage?.let { image ->
+                                            isAnalyzing = true
+                                            debugInfo = "Analyzing..."
+
+                                            try {
+                                                val result = withContext(Dispatchers.IO) {
+                                                    InferenceManager.runInferenceFromUri(ctx, image.file)
+                                                }
+                                                predictions = result
+                                                debugInfo = if (result != null) {
+                                                    "Got ${result.size} predictions"
+                                                } else {
+                                                    "Inference returned NULL"
+                                                }
+                                            } catch (e: Exception) {
+                                                debugInfo = "ERROR: ${e.message}"
+                                                e.printStackTrace()
+                                            } finally {
+                                                isAnalyzing = false
+                                            }
+                                        }
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                "What insect is that?",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.Bold
-                            )
+                            if (isAnalyzing) {
+                                Text(
+                                    "Analyzing...",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                Text(
+                                    "What insect is that?",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
                         Spacer(Modifier.width(50.dp))
@@ -192,6 +233,31 @@ fun MainScreen(navController: NavController) {
                         }
                     }
 
+
+                    debugInfo.takeIf { it.isNotEmpty() }?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Debug: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Red
+                        )
+                    }
+
+                    predictions?.takeIf { it.isNotEmpty() }?.let { preds ->
+                        Spacer(Modifier.height(16.dp))
+                        Text("Predictions:", style = MaterialTheme.typography.headlineSmall)
+                        preds.forEach { (level, prediction) ->
+                            Text(
+                                text = "$level: $prediction",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } ?: predictions?.takeIf { it.isEmpty() }?.let {
+                        Spacer(Modifier.height(16.dp))
+                        Text("No predictions found", color = Color.Red)
+                    }
                 } else {
                     Box(modifier = Modifier
                         .fillMaxWidth()

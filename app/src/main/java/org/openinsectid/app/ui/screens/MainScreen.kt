@@ -131,7 +131,7 @@ fun MainScreen(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .horizontalScroll(rememberScrollState())
+                    .verticalScroll(rememberScrollState())
                     .padding(padding)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

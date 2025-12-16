@@ -1,13 +1,49 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
+val dotenv = Properties().apply {
+    val envFile = rootProject.file(".env")
+    if (envFile.exists()) {
+        envFile.inputStream().use { load(it) }
+    }
+}
+
+fun env(name: String): String? =
+    System.getenv(name) ?: dotenv.getProperty(name)
+
+
 android {
     namespace = "org.openinsectid.app"
     compileSdk {
         version = release(36)
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystore = env("KEYSTORE_FILE")
+            val storePass = env("KEYSTORE_PASSWORD")
+            val alias = env("KEY_ALIAS")
+            val keyPass = env("KEY_PASSWORD")
+
+            if (
+                !keystore.isNullOrBlank() &&
+                !storePass.isNullOrBlank() &&
+                !alias.isNullOrBlank() &&
+                !keyPass.isNullOrBlank()
+            ) {
+                storeFile = file(keystore)
+                storePassword = storePass
+                keyAlias = alias
+                keyPassword = keyPass
+            } else {
+                println("WARNING: Release signingConfig not fully configured.")
+            }
+        }
     }
 
     defaultConfig {
@@ -22,10 +58,24 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+
+        create("unminifiedRelease") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+
+        create("debuggableRelease") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = true
+            isDebuggable = true
         }
     }
 

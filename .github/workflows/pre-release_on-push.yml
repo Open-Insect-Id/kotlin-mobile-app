@@ -1,0 +1,78 @@
+name: Build & Pre-Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Extract versionName
+        id: version
+        run: |
+          VER=$(./gradlew :app:printVersionName --console=plain | grep "VERSION_NAME" | cut -d'=' -f2 | tr -d '[:space:]')
+          echo "versionName=$VER" >> $GITHUB_ENV
+          echo "Detected versionName: $VER" 
+
+      # Decode keystore
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_FILE_B64 }}" | base64 -d > my-release-key.jks
+
+      - name: Export signing env
+        run: |
+          echo "KEYSTORE_FILE=$PWD/my-release-key.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build Release APK
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: ./gradlew assembleRelease assembleUnminifiedRelease
+
+      - name: Rename APKs with version
+        run: |
+          MIN="OpenInsectId-v${{ env.versionName }}-beta-${{ github.run_number }}.apk"
+          UNMIN="OpenInsectId-v${{ env.versionName }}-beta-${{ github.run_number }}-unminified.apk"
+          
+          mv app/build/outputs/apk/release/app-release.apk "$MIN"
+          mv app/build/outputs/apk/unminifiedRelease/app-unminifiedRelease.apk "$UNMIN"
+          
+          echo "APK_MIN=$MIN" >> $GITHUB_ENV
+          echo "APK_UNMIN=$UNMIN" >> $GITHUB_ENV
+      
+
+      # Create tag before release
+      - name: Create tag
+        run: |
+          TAG="v${{ env.versionName }}-beta-${{ github.run_number }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
+
+      - name: Upload pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "v${{ env.versionName }}-beta-${{ github.run_number }}"
+          prerelease: true
+          files: |
+            ${{ env.APK_MIN }}
+            ${{ env.APK_UNMIN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

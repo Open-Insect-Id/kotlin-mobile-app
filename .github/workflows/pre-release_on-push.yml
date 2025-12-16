@@ -2,15 +2,18 @@ name: Build & Pre-Release
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
   contents: write
   actions: write
 
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +30,9 @@ jobs:
         run: |
           VER=$(./gradlew :app:printVersionName --console=plain | grep "VERSION_NAME" | cut -d'=' -f2 | tr -d '[:space:]')
           echo "versionName=$VER" >> $GITHUB_ENV
+          echo "Detected versionName: $VER" 
 
+      # Decode keystore
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_FILE_B64 }}" | base64 -d > my-release-key.jks
 
@@ -38,45 +43,45 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build APKs with retry
-        run: |
-          for i in {1..3}; do
-            if ./gradlew assembleRelease assembleUnminifiedRelease assembleDebuggableRelease; then
-              exit 0
-            fi
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done
-          exit 1
+      - name: Build Release APK
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: ./gradlew assembleRelease assembleUnminifiedRelease assembleDebuggableRelease
 
-      - name: Rename APKs
+      - name: Rename APKs with version
         run: |
           MIN="OpenInsectId-v${{ env.versionName }}-beta-${{ github.run_number }}.apk"
           UNMIN="OpenInsectId-v${{ env.versionName }}-beta-${{ github.run_number }}-unminified.apk"
           DEBUG="OpenInsectId-v${{ env.versionName }}-beta-${{ github.run_number }}-debuggable.apk"
-          
+
           mv app/build/outputs/apk/release/app-release.apk "$MIN"
           mv app/build/outputs/apk/unminifiedRelease/app-unminifiedRelease.apk "$UNMIN"
-          mv app/build/outputs/apk/debuggableRelease/app-debuggableRelease.apk "$DEBUG"
-          
+          mv app/build/outputs/apk/debuggableRelease/app-debuggableRelease.apk "$DEBUG"  # FIXED: app-debuggableRelease.apk
+
           echo "APK_MIN=$MIN" >> $GITHUB_ENV
           echo "APK_UNMIN=$UNMIN" >> $GITHUB_ENV
           echo "APK_DEBUG=$DEBUG" >> $GITHUB_ENV
+         
 
+      # Create tag before release
       - name: Create tag
         run: |
           TAG="v${{ env.versionName }}-beta-${{ github.run_number }}"
           git tag "$TAG"
           git push origin "$TAG"
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
 
-      - name: Release APKs
-        run: |
-          gh release create "${{ env.TAG_NAME }}" \
-            "${{ env.APK_MIN }}" \
-            "${{ env.APK_UNMIN }}" \
-            "${{ env.APK_DEBUG }}" \
-            --title "v${{ env.versionName }}-beta-${{ github.run_number }}" \
-            --generate-notes \
-            --prerelease
+      - name: Upload pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "v${{ env.versionName }}-beta-${{ github.run_number }}"
+          prerelease: true
+          files: |
+            ${{ env.APK_MIN }}
+            ${{ env.APK_UNMIN }}
+            ${{ env.APK_DEBUG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

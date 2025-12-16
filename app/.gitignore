@@ -4,3 +4,6 @@
 androidTest/
 test/
 release/
+/release
+/unminifiedRelease
+/debuggableRelease

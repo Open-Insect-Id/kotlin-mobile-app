@@ -40,7 +40,7 @@ fun DuckDuckGoImageSearch(
                 searchDuckDuckGoImages(query)
             }
             state = ImageSearchState.Success(images)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             state = ImageSearchState.Error("No internet connection")
         }
     }

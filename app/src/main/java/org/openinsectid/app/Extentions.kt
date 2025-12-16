@@ -1,7 +1,11 @@
 package org.openinsectid.app
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import java.net.URI
+import androidx.core.net.toUri
 
 /**
  * And from https://github.com/Elnix90/Dragon-Launcher
@@ -49,6 +53,16 @@ fun Context.hasInternet(): Boolean {
     return caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
+
+fun webSearch(context: Context, query: String) {
+    val encodedQuery = Uri.encode(query)
+    val searchUrl = "https://www.duckduckgo.com/search?q=$encodedQuery"
+
+    val intent = Intent(Intent.ACTION_VIEW, searchUrl.toUri()).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    context.startActivity(intent)
+}
 
 //
 //fun Context.copyToClipboard(text: String) {

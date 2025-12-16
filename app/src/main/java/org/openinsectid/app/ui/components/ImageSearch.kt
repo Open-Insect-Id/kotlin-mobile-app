@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,6 +23,7 @@ import org.openinsectid.app.data.ImageSearchState
 import org.openinsectid.app.hasInternet
 import org.openinsectid.app.utils.searchGoogleImages
 import org.openinsectid.app.utils.searchInaturalistImages
+import org.openinsectid.app.webSearch
 
 
 @Composable
@@ -70,6 +73,15 @@ fun InaturalistImageSearch(
         }
     }
 
+    TextButton(
+        onClick = { webSearch(ctx, query) }
+    ) {
+        Text(
+            text = "Search web",
+            color = MaterialTheme.colorScheme.onBackground,
+            textDecoration =  TextDecoration.Underline
+        )
+    }
     when (val s = state) {
         ImageSearchState.Idle -> Unit
 
@@ -140,7 +152,9 @@ fun GoogleImageSearch(
     when (val s = state) {
         ImageSearchState.Idle -> Unit
         ImageSearchState.Loading -> Box(
-            Modifier.fillMaxWidth().height(200.dp),
+            Modifier
+                .fillMaxWidth()
+                .height(200.dp),
             contentAlignment = Alignment.Center
         ) { CircularProgressIndicator() }
         is ImageSearchState.Error -> Column {

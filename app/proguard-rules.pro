@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+
+# Keep ONNX Runtime APIs used by native code
+-keep class ai.onnxruntime.** { *; }
+-keep class ai.onnxruntime.impl.** { *; }
+
+# Keep inference helper
+-keep class org.openinsectid.app.utils.InferenceManager { *; }

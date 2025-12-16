@@ -73,7 +73,7 @@ android {
 
         create("debuggableRelease") {
             initWith(getByName("release"))
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = true
         }

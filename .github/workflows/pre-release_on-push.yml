@@ -27,7 +27,6 @@ jobs:
           echo "versionName=$VER" >> $GITHUB_ENV
           echo "Detected versionName: $VER" 
 
-
       # Decode keystore
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_FILE_B64 }}" | base64 -d > my-release-key.jks

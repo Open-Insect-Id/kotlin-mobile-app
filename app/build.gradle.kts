@@ -116,9 +116,12 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.coil.compose.v300alpha04)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.gson)
 
     implementation(libs.androidx.activity.ktx)
 

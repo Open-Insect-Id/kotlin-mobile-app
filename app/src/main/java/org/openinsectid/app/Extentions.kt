@@ -1,5 +1,7 @@
 package org.openinsectid.app
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -78,13 +80,13 @@ fun openUrl(ctx: Context, url: String) {
     }
 }
 
-//
-//fun Context.copyToClipboard(text: String) {
-//    val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-//    val clipData = ClipData.newPlainText(getString(R.string.app_name), text)
-//    clipboardManager.setPrimaryClip(clipData)
-//    showToast("")
-//}
+
+fun Context.copyToClipboard(text: String) {
+    val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipData = ClipData.newPlainText(getString(R.string.app_name), text)
+    clipboardManager.setPrimaryClip(clipData)
+    showToast("")
+}
 
 
 //

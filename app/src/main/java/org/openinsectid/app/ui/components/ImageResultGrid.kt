@@ -44,6 +44,7 @@ fun ImageResultsGrid(
                     .height(160.dp)
                     .clip(MaterialTheme.shapes.medium)
                     .clickable { onImageClick(img) },
+                placeholder = painterResource(R.drawable.ic_broken_image),
                 error = painterResource(R.drawable.ic_broken_image)
             )
         }

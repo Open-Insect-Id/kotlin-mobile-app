@@ -25,10 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             OpenInsectIdTheme {
                 val navController = rememberNavController()
-                MainNavHost(
-                    navController = navController,
-                    onImagePicked = { uri -> /* no-op global callback; screens handle storage */ }
-                )
+                MainNavHost(navController = navController)
             }
         }
     }

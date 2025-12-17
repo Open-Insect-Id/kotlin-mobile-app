@@ -21,10 +21,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,7 +60,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.openinsectid.app.data.ImageStore
+import org.openinsectid.app.data.KeysSettingsStore
 import org.openinsectid.app.openUrl
+import org.openinsectid.app.ui.components.AlphaQueryAnswer
 import org.openinsectid.app.ui.components.ImageSearch
 import org.openinsectid.app.utils.InferenceManager
 import org.openinsectid.app.webSearch
@@ -72,6 +77,8 @@ fun MainScreen(navController: NavController) {
     var isAnalyzing by remember { mutableStateOf(false) }
     var debugInfo by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+
+    val alphaLLMApiKey by KeysSettingsStore.getAlphaLLMApiKey(ctx).collectAsState(initial = "")
 
 
     // Load last saved image on compose
@@ -98,7 +105,16 @@ fun MainScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { /*Text("OpenInsectId")*/ },
+                title = { Text("OpenInsectId") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings"
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.History.route) }) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "History")
@@ -174,6 +190,7 @@ fun MainScreen(navController: NavController) {
                                     coroutineScope.launch {
                                         currentImage?.let { image ->
                                             isAnalyzing = true
+                                            predictions = null
                                             debugInfo = "Analyzing..."
 
                                             try {
@@ -267,6 +284,11 @@ fun MainScreen(navController: NavController) {
                                 .values
                                 .joinToString(" ")
                         }
+
+                        AlphaQueryAnswer(
+                            alphaLLMApiKey = alphaLLMApiKey,
+                            predictions = predictions)
+
                         ImageSearch(
                             query = insectName,
                             onImageClick = {

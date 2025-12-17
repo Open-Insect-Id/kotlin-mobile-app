@@ -17,8 +17,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -80,8 +87,17 @@ fun ImageSearch(
         onClick = { webSearch(ctx, normalQuery) }
     ) {
         Text(
-            text = "Search web",
-            color = MaterialTheme.colorScheme.onBackground,
+            text = buildAnnotatedString {
+                append("Search web: ")
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Italic)
+                ) {
+                    append(normalQuery)
+                }
+            },
+            color = Color(0xFF6F6FFF),
             textDecoration = TextDecoration.Underline
         )
     }

@@ -79,10 +79,12 @@ private fun parseAlphaResponse(raw: String): String {
         } else {
             "Error: $raw"
         }
-    } catch (_: JsonSyntaxException) {
+    } catch (e: JsonSyntaxException) {
+        Log.e("AlphaLLM","$e: ${e.message}; $raw")
         // Fallback to raw text if JSON parsing fails
         raw
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Log.e("AlphaLLM","$e: ${e.message}; $raw")
         raw
     }
 }

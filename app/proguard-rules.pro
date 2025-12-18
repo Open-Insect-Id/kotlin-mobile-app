@@ -27,3 +27,17 @@
 
 # Keep inference helper
 -keep class org.openinsectid.app.utils.InferenceManager { *; }
+
+
+# Gson rules for AlphaResponse
+-keep class org.openinsectid.app.data.AlphaResponse { *; }
+-keep class org.openinsectid.app.data.AlphaInnerResponse { *; }
+-keepclassmembers class org.openinsectid.app.data.* {
+    <fields>;
+}
+
+# Gson general rules
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn sun.misc.**
+-keep class com.google.gson.** { *; }

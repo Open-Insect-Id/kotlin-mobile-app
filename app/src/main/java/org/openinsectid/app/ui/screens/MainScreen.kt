@@ -288,7 +288,7 @@ fun MainScreen(navController: NavController) {
                         AlphaQueryAnswer(
                             alphaLLMApiKey = alphaLLMApiKey,
                             alphaLLMApiUrl = alphaLLMApiUrl,
-                            predictions = predictions
+                            insectName = insectName
                         )
 
                         ImageSearch(

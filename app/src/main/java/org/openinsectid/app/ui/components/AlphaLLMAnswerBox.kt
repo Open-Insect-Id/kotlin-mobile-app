@@ -94,7 +94,7 @@ private fun parseAlphaResponse(raw: String): String {
 fun AlphaQueryAnswer(
     alphaLLMApiKey: String,
     alphaLLMApiUrl: String,
-    predictions: Map<String, Pair<String, Float>>?,
+    insectName: String?,
     modifier: Modifier = Modifier
 ) {
     var queryText by remember { mutableStateOf("") }
@@ -130,10 +130,9 @@ fun AlphaQueryAnswer(
     val ctx = LocalContext.current
 
     // Auto-generate query from predictions and auto-query when predictions change
-    LaunchedEffect(predictions) {
-        predictions?.takeIf { it.isNotEmpty() }?.let { infos ->
-            val insectName = infos.values.joinToString(" ")
-            queryText = "Write a short description of this insect: $insectName: characteristics, habitat, and interesting facts"
+    LaunchedEffect(insectName) {
+        insectName?.takeIf { it.isNotEmpty() }?.let { name ->
+            queryText = "Write a short description of this insect: $name: characteristics, habitat, and interesting facts"
 
             // Auto-launch query
             isLoading = true
@@ -170,10 +169,9 @@ fun AlphaQueryAnswer(
 
 
     fun resetQuery() {
-        predictions?.takeIf { it.isNotEmpty() }?.let { infos ->
-            val insectName = infos.values.joinToString(" ")
+        insectName?.takeIf { it.isNotEmpty() }?.let { name ->
             queryText =
-                "Write a short description of this insect: $insectName: characteristics, habitat, and interesting facts"
+                "Write a short description of this insect: $name: characteristics, habitat, and interesting facts"
         }
     }
 

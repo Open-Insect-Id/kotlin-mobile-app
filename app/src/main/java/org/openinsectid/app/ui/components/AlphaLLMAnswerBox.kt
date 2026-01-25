@@ -55,7 +55,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.openinsectid.app.copyToClipboard
 import org.openinsectid.app.data.AlphaResponse
-import org.openinsectid.app.data.ImageSearchConfig
 import org.openinsectid.app.utils.AlphaLLM
 
 private val gson = Gson()
@@ -94,13 +93,15 @@ private fun parseAlphaResponse(raw: String): String {
 @Composable
 fun AlphaQueryAnswer(
     alphaLLMApiKey: String,
-    predictions: Map<String, String>?,
+    alphaLLMApiUrl: String,
+    predictions: Map<String, Pair<String, Float>>?,
     modifier: Modifier = Modifier
 ) {
     var queryText by remember { mutableStateOf("") }
     var rawResponse by remember { mutableStateOf<String?>(null) }
     var parsedResponse by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var isError by remember { mutableStateOf(false) }
     var isEditMode by remember { mutableStateOf(false) }
     var elapsedTime by remember { mutableFloatStateOf(0f) }
 
@@ -136,11 +137,15 @@ fun AlphaQueryAnswer(
 
             // Auto-launch query
             isLoading = true
-            rawResponse = AlphaLLM.generateText(
+            val (response, error) = AlphaLLM.generateText(
                 prompt = queryText,
-                model = "Perplexity",
-                apiKey = alphaLLMApiKey
+//                model = "sonar",
+                apiKey = alphaLLMApiKey,
+                baseUrl = alphaLLMApiUrl
             )
+            rawResponse = response
+            isError = error
+
 
             // Parse response
             rawResponse?.let { response ->
@@ -177,11 +182,15 @@ fun AlphaQueryAnswer(
         coroutineScope.launch {
             isLoading = true
             elapsedTime = 0f
-            rawResponse = AlphaLLM.generateText(
+            val (response, error) = AlphaLLM.generateText(
                 prompt = queryText,
-                model = "Perplexity",
-                apiKey = alphaLLMApiKey
+//                model = "Perplexity",
+                apiKey = alphaLLMApiKey,
+                baseUrl = alphaLLMApiUrl
             )
+            rawResponse = response
+            isError = error
+
             rawResponse?.let { response ->
                 parsedResponse = parseAlphaResponse(response)
             }
@@ -279,7 +288,8 @@ fun AlphaQueryAnswer(
                             .fillMaxWidth()
                             .align(Alignment.Center),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = if (!isError) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.error
                         )
                     ) {
                         Column(

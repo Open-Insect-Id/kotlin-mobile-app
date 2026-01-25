@@ -48,10 +48,14 @@ fun SettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
 
     val alphaLLMApiKey by KeysSettingsStore.getAlphaLLMApiKey(ctx).collectAsState(initial = null)
+    val alphaLLMApiUrl by KeysSettingsStore.getAlphaLLMApiUrl(ctx).collectAsState(initial = null)
+
     var tempKey by remember { mutableStateOf("") }
+    var tempUrl by remember { mutableStateOf("") }
 
     LaunchedEffect(alphaLLMApiKey) {
         tempKey = alphaLLMApiKey ?: ""
+        tempUrl = alphaLLMApiUrl ?: ""
     }
 
     Scaffold(topBar = {
@@ -117,6 +121,57 @@ fun SettingsScreen(navController: NavController) {
                                     }
                                 },
                                 enabled = tempKey != alphaLLMApiKey
+                            ) {
+                                Text("Save")
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                Card {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            "AlphaLLM API Url",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        TextField(
+                            value = tempUrl,
+                            onValueChange = { tempUrl = it },
+                            label = { Text("Enter API Url") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    tempUrl = alphaLLMApiUrl ?: ""
+                                },
+                                enabled = tempUrl != alphaLLMApiUrl
+                            ) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        KeysSettingsStore.setAlphaLLMApiUrl(ctx, tempUrl)
+                                    }
+                                },
+                                enabled = tempUrl != alphaLLMApiUrl
                             ) {
                                 Text("Save")
                             }

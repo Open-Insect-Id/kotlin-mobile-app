@@ -12,6 +12,8 @@ import androidx.core.graphics.scale
 import org.json.JSONObject
 import java.io.InputStream
 import kotlin.collections.iterator
+import kotlin.math.exp
+import kotlin.math.ln
 
 object InferenceManager {
 
@@ -53,7 +55,7 @@ object InferenceManager {
     }
 
 
-    fun runInference(bitmap: Bitmap): Map<String, String> {
+    fun runInference(bitmap: Bitmap): Map<String, Pair<String, Float>> {
         val session = ortSession ?: error("InferenceManager not initialized")
 
         // Exact Python preprocessing
@@ -95,24 +97,31 @@ object InferenceManager {
         val value = outputTensor.value
 
 
+        @Suppress("UNCHECKED_CAST")
         val float3D = value as Array<Array<FloatArray>> // [batch, 4, total_classes]
-        val predictions = mutableMapOf<String, String>()
+
+        val predictions = mutableMapOf<String, Pair<String, Float>>()
         val classLists = listOf(ordreClasses, famillesClasses, genreClasses, especesClasses)
         val names = listOf("ordre", "famille", "genre", "espece")
 
         val batch = float3D[0]
+
         for ((i, classList) in classLists.withIndex()) {
             val slice = batch[i].sliceArray(0 until classList.size)
-            val predictedIndex = slice.indices.maxByOrNull { slice[it] } ?: 0
-            predictions[names[i]] = classList[predictedIndex]
-            Log.d("Inference", "${names[i]}: ${classList[predictedIndex]} (idx=$predictedIndex)")
+            val probs = softmax(slice)
+            val predictedIndex = probs.indices.maxByOrNull { probs[it] } ?: 0
+            val ent = entropy(probs)
+            predictions[names[i]] = classList[predictedIndex] to ent
+
+            Log.d("Inference", "${names[i]}: ${classList[predictedIndex]} (idx=$predictedIndex), entropy=$ent")
         }
+
 
         Log.d("Inference", "Total predictions: ${predictions.size}")
         return predictions
     }
 
-    fun runInferenceFromUri(context: Context, uri: Uri): Map<String, String>? {
+    fun runInferenceFromUri(context: Context, uri: Uri): Map<String, Pair<String, Float>>? {
         val bitmap: Bitmap? = try {
             val input: InputStream? = context.contentResolver.openInputStream(uri)
             val bmp = BitmapFactory.decodeStream(input)
@@ -128,4 +137,44 @@ object InferenceManager {
 
         return runInference(bitmap)
     }
+}
+
+
+
+/**
+ * Computes the softmax of a given array of logits.
+ *
+ * Softmax converts raw scores (logits) into probabilities that sum to 1.
+ * This is commonly used in classification tasks to interpret model outputs
+ * as probabilities for each class.
+ *
+ * The subtraction of the maximum logit (maxLogit) improves numerical stability
+ * and prevents overflow when exponentiating large numbers.
+ *
+ * @param logits FloatArray of raw model scores for each class.
+ * @return FloatArray of probabilities corresponding to each class.
+ */
+fun softmax(logits: FloatArray): FloatArray {
+    val maxLogit = logits.maxOrNull() ?: 0f
+    val exps = logits.map { exp((it - maxLogit).toDouble()) }
+    val sumExps = exps.sum()
+    return exps.map { (it / sumExps).toFloat() }.toFloatArray()
+}
+
+/**
+ * Computes the entropy of a probability distribution.
+ *
+ * Entropy measures the uncertainty in the predicted probabilities.
+ * Low entropy means the model is confident (one class dominates),
+ * high entropy means the model is uncertain (probabilities are more uniform).
+ *
+ * Logarithm of zero is avoided by filtering out zero probabilities.
+ *
+ * @param probs FloatArray of probabilities (should sum to ~1, e.g., from softmax).
+ * @return Float representing the entropy of the distribution.
+ */
+fun entropy(probs: FloatArray): Float {
+    return -probs.filter { it > 0f } // avoid log(0)
+        .sumOf { (it * ln(it.toDouble())) }
+        .toFloat()
 }

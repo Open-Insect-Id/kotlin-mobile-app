@@ -21,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FolderOpen
@@ -65,7 +64,6 @@ import org.openinsectid.app.openUrl
 import org.openinsectid.app.ui.components.AlphaQueryAnswer
 import org.openinsectid.app.ui.components.ImageSearch
 import org.openinsectid.app.utils.InferenceManager
-import org.openinsectid.app.webSearch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,12 +71,13 @@ import org.openinsectid.app.webSearch
 fun MainScreen(navController: NavController) {
     val ctx = LocalContext.current
     var currentImage by remember { mutableStateOf<ImageStore.StoredImage?>(null) }
-    var predictions by remember { mutableStateOf<Map<String, String>?>(null) }
+    var predictions by remember { mutableStateOf<Map<String, Pair<String, Float>>?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
     var debugInfo by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     val alphaLLMApiKey by KeysSettingsStore.getAlphaLLMApiKey(ctx).collectAsState(initial = "")
+    val alphaLLMApiUrl by KeysSettingsStore.getAlphaLLMApiUrl(ctx).collectAsState(initial = "")
 
 
     // Load last saved image on compose
@@ -195,7 +194,10 @@ fun MainScreen(navController: NavController) {
 
                                             try {
                                                 val result = withContext(Dispatchers.IO) {
-                                                    InferenceManager.runInferenceFromUri(ctx, image.file)
+                                                    InferenceManager.runInferenceFromUri(
+                                                        ctx,
+                                                        image.file
+                                                    )
                                                 }
                                                 predictions = result
                                                 debugInfo = if (result != null) {
@@ -271,7 +273,7 @@ fun MainScreen(navController: NavController) {
                         Text("Predictions:", style = MaterialTheme.typography.headlineSmall)
                         infos.forEach { (level, prediction) ->
                             Text(
-                                text = "$level: $prediction",
+                                text = "$level: ${prediction.first} (entropy: ${prediction.second})",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontWeight = FontWeight.Bold
@@ -279,15 +281,15 @@ fun MainScreen(navController: NavController) {
                         }
 
                         val insectName = remember(infos) {
-                            infos
-                                .toSortedMap()
-                                .values
-                                .joinToString(" ")
+                            infos.values.joinToString(" ") { it.first }
+
                         }
 
                         AlphaQueryAnswer(
                             alphaLLMApiKey = alphaLLMApiKey,
-                            predictions = predictions)
+                            alphaLLMApiUrl = alphaLLMApiUrl,
+                            predictions = predictions
+                        )
 
                         ImageSearch(
                             query = insectName,

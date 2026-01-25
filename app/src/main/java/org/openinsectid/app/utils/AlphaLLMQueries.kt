@@ -8,52 +8,56 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object AlphaLLM {
-    private const val BASE_URL = "http://de5.azurhosts.com:25692"
-
     suspend fun generateText(
         prompt: String,
-        apiKey: String,
+        apiKey: String?,
+        baseUrl: String,
         model: String = "auto",
-        userId: Int? = null,
-        conversationId: Int? = null,
-    ): String? = withContext(Dispatchers.IO) {
+    ): Pair<String, Boolean> = withContext(Dispatchers.IO) {
         try {
-            val encodedPrompt = URLEncoder.encode(prompt, "UTF-8")
-            val encodedApiKey = URLEncoder.encode(apiKey, "UTF-8")
+            val url = URL("$baseUrl/text/generation")
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 300_000
+                readTimeout = 300_000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            }
 
-            val url = "$BASE_URL/generate/text?" +
-                    "prompt=$encodedPrompt&" +
-                    "model=$model&" +
-                    "api_key=$encodedApiKey" +
-                    (userId?.let { "&user_id=$it" } ?: "") +
-                    (conversationId?.let { "&conversation_id=$it" } ?: "")
-            Log.d("AlphaLLM", "Query: $url")
+            // Encode parameters for body
+            val params = buildString {
+                append("prompt=").append(URLEncoder.encode(prompt, "UTF-8"))
+                append("&model=").append(URLEncoder.encode(model, "UTF-8"))
+                append("&user_id=").append(0)
+                append("&conv_id=").append(0)
+                append("&stream=false")
+            }
 
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 300000 // I set big timeouts cause Yoan's api is kinda slow
-            connection.readTimeout = 300000
+            connection.outputStream.use { it.write(params.toByteArray()) }
 
             val responseCode = connection.responseCode
-            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.bufferedReader().use { it.readText() }
+            val stream = if (responseCode in 200..299) {
+                connection.inputStream
             } else {
-                Log.e("AlphaLLM", "HTTP $responseCode: ${connection.responseMessage}")
-                when (responseCode) {
-                    401 -> "401 Unauthorized (check api key)"
-                    403 -> "403 Forbidden (check api key)"
-                    404 -> "404 Not Found"
-                    418 -> "I'm a teapot"
-                    else -> "$responseCode Unknown Error"
-                }
+                connection.errorStream
+            }
+
+            val responseText = stream?.bufferedReader()?.use { it.readText() } ?: ""
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                Pair(responseText, false)
+            } else {
+                Pair(responseText, true)
             }
         }
+
         catch (e: Exception) {
             Log.e("AlphaLLM", "Text generation failed", e)
             when (e) {
                 is java.net.SocketTimeoutException -> "Timeout"
-                else -> null
-            }
+                is java.net.ConnectException -> "Failed to connect to server: $baseUrl"
+                else -> "Unknown Error: $e"
+            } to true
         }
     }
 }

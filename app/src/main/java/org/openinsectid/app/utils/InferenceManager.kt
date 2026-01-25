@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.core.graphics.scale
 import org.json.JSONObject
 import java.io.InputStream
@@ -90,47 +91,24 @@ object InferenceManager {
 
         // Returns OrtSession.Result with ALL outputs
         val outputs = session.run(inputs)
+        val outputTensor = outputs[0]
+        val value = outputTensor.value
 
-        // Get output names from session (like Python: [output.name for output in session.get_outputs()])
-        val outputNames = session.outputNames.toList()  // ["ordre", "famille", "genre", "espece"]
 
+        val float3D = value as Array<Array<FloatArray>> // [batch, 4, total_classes]
         val predictions = mutableMapOf<String, String>()
+        val classLists = listOf(ordreClasses, famillesClasses, genreClasses, especesClasses)
+        val names = listOf("ordre", "famille", "genre", "espece")
 
-        // Map output names to class lists (like Python globals()[f"{name}_classes"])
-        val classLists = mapOf(
-            "ordre" to ordreClasses,
-            "famille" to famillesClasses,
-            "genre" to genreClasses,
-            "espece" to especesClasses
-        )
-
-        // Process each output like Python: for name, output in zip(output_names, outputs):
-        for ((i, outputName) in outputNames.withIndex()) {
-            val outputTensor = outputs[i] ?: continue  // outputs[i] not outputs.values[i]
-            val floatArray = when (val tensorValue = outputTensor.value) {
-                is FloatArray -> tensorValue
-                is Array<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val arr = (tensorValue[0] as? FloatArray) ?: continue
-                    arr
-                }
-                else -> {
-                    android.util.Log.w("Inference", "Unexpected tensor type: ${tensorValue::class}")
-                    continue
-                }
-            }
-
-            val predictedIndex = floatArray.indices.maxByOrNull { floatArray[it] } ?: continue
-            val classList = classLists[outputName] ?: continue
-
-            if (predictedIndex < classList.size) {
-                predictions[outputName] = classList[predictedIndex]
-                android.util.Log.d("Inference", "$outputName: ${classList[predictedIndex]} (idx=$predictedIndex)")
-            }
+        val batch = float3D[0]
+        for ((i, classList) in classLists.withIndex()) {
+            val slice = batch[i].sliceArray(0 until classList.size)
+            val predictedIndex = slice.indices.maxByOrNull { slice[it] } ?: 0
+            predictions[names[i]] = classList[predictedIndex]
+            Log.d("Inference", "${names[i]}: ${classList[predictedIndex]} (idx=$predictedIndex)")
         }
 
-
-        android.util.Log.d("Inference", "Total predictions: ${predictions.size}")
+        Log.d("Inference", "Total predictions: ${predictions.size}")
         return predictions
     }
 

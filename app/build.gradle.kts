@@ -50,8 +50,8 @@ android {
         applicationId = "org.openinsectid.app"
         minSdk = 28
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.2.2"
+        versionCode = 8
+        versionName = "1.4.0"
     }
 
     buildTypes {

@@ -27,31 +27,35 @@ object InferenceManager {
     fun init(context: Context) {
         if (ortSession != null) return  // already initialized
 
-        val env = OrtEnvironment.getEnvironment()
-        val modelBytes = context.assets.open("insect_model.onnx").readBytes()
-        ortSession = env.createSession(modelBytes)
+        try {
+            val env = OrtEnvironment.getEnvironment()
+            val modelBytes = context.assets.open("insect_model.onnx").readBytes()
+            ortSession = env.createSession(modelBytes)
 
-        val hierarchyJson =
-            context.assets.open("hierarchy_map.json").bufferedReader().use { it.readText() }
-        val hierarchy = JSONObject(hierarchyJson).getJSONObject("hierarchy_map")
+            val hierarchyJson =
+                context.assets.open("hierarchy_map.json").bufferedReader().use { it.readText() }
+            val hierarchy = JSONObject(hierarchyJson).getJSONObject("full_taxa_map")
 
-        val ordres = mutableSetOf<String>()
-        val familles = mutableSetOf<String>()
-        val genres = mutableSetOf<String>()
-        val especes = mutableSetOf<String>()
+            val ordres = mutableSetOf<String>()
+            val familles = mutableSetOf<String>()
+            val genres = mutableSetOf<String>()
+            val especes = mutableSetOf<String>()
 
-        for (key in hierarchy.keys()) {
-            val value = hierarchy.getJSONObject(key)
-            ordres.add(value.getString("ordre"))
-            familles.add(value.getString("famille"))
-            genres.add(value.getString("genre"))
-            especes.add(value.getString("espece"))
+            for (key in hierarchy.keys()) {
+                val value = hierarchy.getJSONObject(key)
+                ordres.add(value.getString("ordre"))
+                familles.add(value.getString("famille"))
+                genres.add(value.getString("genre"))
+                especes.add(value.getString("espece"))
+            }
+
+            ordreClasses = ordres.sorted()
+            famillesClasses = familles.sorted()
+            genreClasses = genres.sorted()
+            especesClasses = especes.sorted()
+        } catch (e: Exception) {
+            Log.e("InferenceManager", "Error while loading Inference manager: $e")
         }
-
-        ordreClasses = ordres.sorted()
-        famillesClasses = familles.sorted()
-        genreClasses = genres.sorted()
-        especesClasses = especes.sorted()
     }
 
 
